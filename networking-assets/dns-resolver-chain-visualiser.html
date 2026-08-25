@@ -1,0 +1,1039 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DNS Resolver Chain Visualiser</title>
+  <style>
+    :root {
+      --gen-blue: #0074B9;
+      --gen-blue-dark: #005A8E;
+      --gen-blue-medium: #2368B5;
+      --gen-blue-light: #6EA3D0;
+      --gen-green: #1D8F35;
+      --gen-green-light: #e6f4ea;
+      --gen-black: #001725;
+      --gen-gray-bg: #EDF2F6;
+      --gen-gray-light: #D9DDE3;
+      --gen-gray-mid: #8B9097;
+      --gen-gray-dark: #374753;
+      --white: #FFFFFF;
+      --shadow: 0 10px 28px rgba(0, 23, 37, 0.10);
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, Arial, sans-serif;
+      background: var(--gen-gray-bg);
+      color: var(--gen-black);
+      line-height: 1.5;
+    }
+
+    .artifact {
+      max-width: 940px;
+      margin: 0 auto;
+      padding: 24px 16px;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+      border-top: 6px solid var(--gen-blue);
+    }
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: clamp(1.5rem, 3.5vw, 2.2rem);
+      letter-spacing: -0.02em;
+      color: var(--gen-black);
+    }
+
+    .subtitle {
+      margin: 0;
+      font-size: 1rem;
+      color: var(--gen-gray-dark);
+      max-width: 720px;
+    }
+
+    .domain-panel {
+      margin-top: 14px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    label {
+      font-weight: 700;
+      color: var(--gen-black);
+      font-size: 0.95rem;
+    }
+
+    select {
+      min-height: 42px;
+      padding: 8px 12px;
+      border: 2px solid var(--gen-gray-light);
+      border-radius: 10px;
+      background: var(--white);
+      color: var(--gen-black);
+      font-size: 1rem;
+      min-width: 200px;
+      font-family: inherit;
+    }
+
+    select:focus-visible {
+      outline: 3px solid var(--gen-blue);
+      outline-offset: 2px;
+    }
+
+    /* ── Collapsible Before Panel ── */
+    .before-panel {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      margin-bottom: 16px;
+      border-left: 6px solid var(--gen-blue);
+      overflow: hidden;
+    }
+
+    .before-panel summary {
+      padding: 14px 20px;
+      font-weight: 700;
+      font-size: 1.05rem;
+      cursor: pointer;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--gen-black);
+      user-select: none;
+    }
+
+    .before-panel summary::-webkit-details-marker { display: none; }
+
+    .before-panel summary::after {
+      content: "▸";
+      font-size: 1.1rem;
+      transition: transform 0.2s ease;
+      color: var(--gen-blue);
+    }
+
+    .before-panel[open] summary::after {
+      transform: rotate(90deg);
+    }
+
+    .before-panel summary:focus-visible {
+      outline: 3px solid var(--gen-blue);
+      outline-offset: -3px;
+    }
+
+    .before-body {
+      padding: 0 20px 18px;
+    }
+
+    .before-body p {
+      margin: 0 0 10px;
+      color: var(--gen-gray-dark);
+      font-size: 0.98rem;
+    }
+
+    .question-line {
+      display: inline-block;
+      background: rgba(0, 116, 185, 0.08);
+      border: 2px solid rgba(0, 116, 185, 0.18);
+      border-radius: 10px;
+      padding: 8px 12px;
+      color: var(--gen-black);
+      font-weight: 800;
+      margin: 2px 0 10px;
+      font-size: 0.95rem;
+    }
+
+    .two-outcomes {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .outcome-box {
+      border: 2px solid var(--gen-gray-light);
+      border-radius: 12px;
+      padding: 10px 12px;
+      background: #fbfdff;
+      font-size: 0.93rem;
+    }
+
+    .outcome-box strong {
+      display: block;
+      color: var(--gen-blue);
+      margin-bottom: 2px;
+      font-size: 0.88rem;
+    }
+
+    .journey-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 2px solid var(--gen-gray-light);
+    }
+
+    .journey-pill {
+      background: var(--gen-blue);
+      color: var(--white);
+      border-radius: 999px;
+      padding: 6px 11px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      white-space: nowrap;
+    }
+
+    .journey-arrow {
+      color: var(--gen-green);
+      font-weight: 900;
+      font-size: 1.1rem;
+    }
+
+    /* ── Card ── */
+    .stage-wrap {
+      position: relative;
+      margin-bottom: 16px;
+    }
+
+    .card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 190px 1fr;
+    }
+
+    /* ── Chain Panel (replaces old blue visual) ── */
+    .chain-panel {
+      background: linear-gradient(170deg, var(--gen-blue), var(--gen-blue-medium));
+      color: var(--white);
+      padding: 20px 14px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .chain-panel::after {
+      content: "";
+      position: absolute;
+      width: 160px;
+      height: 160px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.05);
+      right: -70px;
+      bottom: -70px;
+    }
+
+    .chain-label {
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      opacity: 0.8;
+      margin-bottom: 12px;
+    }
+
+    .chain-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      flex: 1;
+      z-index: 1;
+    }
+
+    .chain-node {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      transition: background 0.25s ease, opacity 0.25s ease;
+      opacity: 0.4;
+      position: relative;
+    }
+
+    .chain-node.visited {
+      opacity: 0.65;
+    }
+
+    .chain-node.active {
+      background: rgba(255,255,255,0.2);
+      opacity: 1;
+      font-weight: 800;
+    }
+
+    .chain-node-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      background: rgba(255,255,255,0.12);
+      display: grid;
+      place-items: center;
+      font-size: 1rem;
+      flex-shrink: 0;
+      border: 1.5px solid rgba(255,255,255,0.15);
+      transition: background 0.25s ease, border-color 0.25s ease;
+    }
+
+    .chain-node.active .chain-node-icon {
+      background: rgba(255,255,255,0.28);
+      border-color: rgba(255,255,255,0.4);
+    }
+
+    .chain-node-name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .chain-connector {
+      width: 2px;
+      height: 8px;
+      background: rgba(255,255,255,0.2);
+      margin-left: 21px;
+      transition: background 0.25s ease;
+    }
+
+    .chain-connector.visited {
+      background: rgba(255,255,255,0.45);
+    }
+
+    .flow-mini {
+      z-index: 1;
+      font-weight: 700;
+      background: rgba(0, 23, 37, 0.2);
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 0.8rem;
+      margin-top: 12px;
+      text-align: center;
+    }
+
+    /* ── Content Panel ── */
+    .content {
+      padding: 22px 26px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .content h2 {
+      font-size: clamp(1.3rem, 2.5vw, 1.8rem);
+      margin: 0 0 12px;
+      color: var(--gen-black);
+    }
+
+    .info-grid {
+      display: grid;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .info-box {
+      border: 2px solid var(--gen-gray-light);
+      border-radius: 12px;
+      padding: 10px 14px;
+      background: #fbfdff;
+      font-size: 0.95rem;
+    }
+
+    .info-box strong {
+      display: block;
+      color: var(--gen-blue);
+      margin-bottom: 2px;
+      font-size: 0.85rem;
+    }
+
+    .question {
+      border-left: 5px solid var(--gen-green);
+      background: var(--gen-green-light);
+      padding: 10px 14px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    /* ── TLD Callout ── */
+    .tld-callout {
+      background: rgba(0, 116, 185, 0.06);
+      border: 1.5px dashed var(--gen-blue-light);
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 0.88rem;
+      color: var(--gen-blue-dark);
+      margin-top: 8px;
+      display: none;
+    }
+
+    .tld-callout.visible {
+      display: block;
+    }
+
+    /* ── Reveal Interaction ── */
+    .reveal-zone {
+      margin-top: 8px;
+    }
+
+    .reveal-btn {
+      background: var(--gen-green-light);
+      color: var(--gen-green);
+      border: 2px solid var(--gen-green);
+      border-radius: 999px;
+      padding: 8px 18px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s ease;
+    }
+
+    .reveal-btn:hover {
+      background: var(--gen-green);
+      color: var(--white);
+    }
+
+    .reveal-btn:focus-visible {
+      outline: 3px solid var(--gen-green);
+      outline-offset: 2px;
+    }
+
+    .action-box {
+      transition: opacity 0.25s ease, max-height 0.3s ease;
+    }
+
+    .action-box.hidden {
+      opacity: 0;
+      max-height: 0;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+      border: 0;
+    }
+
+    .action-box.visible {
+      opacity: 1;
+      max-height: 200px;
+      margin-top: 10px;
+    }
+
+    /* ── Navigation ── */
+    .nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 10px 20px;
+      font-weight: 800;
+      font-size: 0.95rem;
+      cursor: pointer;
+      min-height: 44px;
+      font-family: inherit;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    button:focus-visible {
+      outline: 3px solid var(--gen-blue);
+      outline-offset: 2px;
+    }
+
+    .btn-secondary {
+      background: var(--white);
+      color: var(--gen-blue);
+      border: 2px solid var(--gen-blue);
+    }
+
+    .btn-primary {
+      background: var(--gen-blue);
+      color: var(--white);
+    }
+
+    .counter {
+      font-weight: 800;
+      color: var(--gen-gray-dark);
+      font-size: 0.9rem;
+    }
+
+    /* ── Notice ── */
+    .notice {
+      background: var(--white);
+      border-radius: var(--radius);
+      padding: 16px 20px;
+      box-shadow: var(--shadow);
+      border-left: 6px solid var(--gen-green);
+    }
+
+    .notice h3 {
+      margin: 0 0 4px;
+      font-size: 1.15rem;
+    }
+
+    .notice p { margin: 0; color: var(--gen-gray-dark); font-size: 0.95rem; }
+
+    /* ── Keyboard hint ── */
+    .kbd-hint {
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--gen-gray-mid);
+      margin-top: 6px;
+    }
+
+    /* ── Screen reader only ── */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 720px) {
+      .card { grid-template-columns: 1fr; }
+      .chain-panel {
+        flex-direction: row;
+        padding: 14px;
+        overflow-x: auto;
+        gap: 0;
+      }
+      .chain-label { display: none; }
+      .chain-list {
+        flex-direction: row;
+        align-items: center;
+        gap: 0;
+        width: 100%;
+      }
+      .chain-node {
+        flex-direction: column;
+        gap: 2px;
+        padding: 4px;
+        text-align: center;
+        min-width: 0;
+        flex: 1;
+      }
+      .chain-node-name {
+        font-size: 0.6rem;
+        writing-mode: horizontal-tb;
+      }
+      .chain-node-icon {
+        width: 24px;
+        height: 24px;
+        font-size: 0.85rem;
+      }
+      .chain-connector {
+        width: 8px;
+        height: 2px;
+        margin-left: 0;
+        flex-shrink: 0;
+      }
+      .flow-mini { display: none; }
+      .content { padding: 18px; }
+      .two-outcomes { grid-template-columns: 1fr; }
+      .journey-arrow { transform: rotate(90deg); }
+      .kbd-hint { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="artifact" aria-labelledby="mainTitle">
+    <section class="hero">
+      <h1 id="mainTitle"></h1>
+      <p class="subtitle" id="subtitle"></p>
+      <div class="domain-panel">
+        <label for="domainSelect" id="domainLabel"></label>
+        <select id="domainSelect" aria-describedby="subtitle"></select>
+      </div>
+    </section>
+
+    <details class="before-panel" aria-labelledby="beforeTitle">
+      <summary id="beforeTitle"></summary>
+      <div class="before-body">
+        <p id="beforeIntro"></p>
+        <div class="question-line" id="beforeQuestion"></div>
+        <p id="beforeText"></p>
+        <div class="two-outcomes">
+          <div class="outcome-box">
+            <strong id="foundLabel"></strong>
+            <span id="foundText"></span>
+          </div>
+          <div class="outcome-box">
+            <strong id="notFoundLabel"></strong>
+            <span id="notFoundText"></span>
+          </div>
+        </div>
+        <div class="journey-bar" aria-label="Simple DNS journey">
+          <strong id="journeyLabel"></strong>
+          <div id="journeySteps"></div>
+        </div>
+      </div>
+    </details>
+
+    <section class="stage-wrap">
+      <div id="srAnnounce" class="sr-only" role="status" aria-live="assertive"></div>
+      <article class="card" id="mainCard">
+        <div class="chain-panel">
+          <div class="chain-label" id="chainLabel"></div>
+          <ul class="chain-list" id="chainList" aria-label="DNS lookup chain"></ul>
+          <div class="flow-mini" id="flowMini"></div>
+        </div>
+        <div class="content">
+          <h2 id="stageTitle" tabindex="-1"></h2>
+          <div class="info-grid">
+            <div class="info-box">
+              <strong id="knowsLabel"></strong>
+              <span id="stageKnows"></span>
+            </div>
+          </div>
+          <div class="question" id="stageQuestion"></div>
+          <div class="tld-callout" id="tldCallout"></div>
+          <div class="reveal-zone" id="revealZone">
+            <button class="reveal-btn" id="revealBtn" type="button"></button>
+          </div>
+          <div class="info-box action-box hidden" id="actionBox" tabindex="-1">
+            <strong id="actionLabel"></strong>
+            <span id="stageAction"></span>
+          </div>
+          <div class="nav">
+            <button class="btn-secondary" id="prevBtn" type="button"></button>
+            <span class="counter" id="counter"></span>
+            <button class="btn-primary" id="nextBtn" type="button"></button>
+          </div>
+        </div>
+      </article>
+      <div class="kbd-hint" id="kbdHint"></div>
+    </section>
+
+    <section class="notice">
+      <h3 id="noticeTitle"></h3>
+      <p id="noticeText"></p>
+    </section>
+  </main>
+
+  <script>
+    // ================================================================
+    // TRANSLATABLE STRINGS
+    // To localise this asset, edit only the S object below.
+    // Keep the same keys and structure. No HTML in values.
+    // ================================================================
+    const S = {
+      pageTitle: "How Does DNS Find the Answer?",
+      subtitle: "Follow one DNS question through the lookup chain. Watch how DNS searches for the answer, step by step.",
+      domainLabel: "Choose a website:",
+      beforeTitle: "Before You Start",
+      beforeIntro: "In this visualiser, you will follow one DNS question:",
+      beforeQuestion: "What is the IP address for {domain}?",
+      beforeText: "DNS checks several places in order. At each step, one of two things happens:",
+      foundLabel: "If the answer is found",
+      foundText: "The IP address is returned and the search stops.",
+      notFoundLabel: "If the answer is not found",
+      notFoundText: "DNS asks the next place in the chain.",
+      journeyLabel: "The journey:",
+      journeySteps: ["Browser", "Computer", "Resolver", "DNS Servers", "IP Address"],
+      chainLabel: "Lookup chain",
+      knowsLabel: "What it knows",
+      actionLabel: "What happens next",
+      revealBtn: "Show what happens",
+      previous: "Previous",
+      next: "Next",
+      restart: "Restart",
+      step: "Step",
+      of: "of",
+      kbdHint: "Use \u2190 \u2192 arrow keys to navigate",
+      tldCallout: "Try switching the website above. Notice how the domain ending changes between .com and .org, and this step directs to a different TLD nameserver.",
+      noticeTitle: "Notice the Pattern",
+      noticeText: "DNS checks places closest to the user first. If the answer is not stored nearby, it continues asking other servers until the IP address is found.",
+      domains: [
+        { label: "google.com", value: "google.com", ip: "142.xxx.xxx.xxx", tld: ".com" },
+        { label: "wikipedia.org", value: "wikipedia.org", ip: "208.xxx.xxx.xxx", tld: ".org" },
+        { label: "github.com", value: "github.com", ip: "140.xxx.xxx.xxx", tld: ".com" }
+      ],
+      stages: [
+        {
+          title: "Browser Cache",
+          icon: "\uD83C\uDF10",
+          shortName: "Browser Cache",
+          knows: "Recently visited website addresses stored by the browser.",
+          question: "Has this website been visited recently?",
+          action: "If found here, the IP address is returned immediately. If not, the computer's operating system cache is checked next.",
+          showTldCallout: false
+        },
+        {
+          title: "Operating System Cache",
+          icon: "\uD83D\uDCBB",
+          shortName: "OS Cache",
+          knows: "DNS results stored by the computer's operating system.",
+          question: "Does the computer already have this answer?",
+          action: "If found here, the IP address is returned. If not, the request is sent to the recursive resolver.",
+          showTldCallout: false
+        },
+        {
+          title: "Recursive Resolver (DNS Helper)",
+          icon: "\uD83D\uDD0E",
+          shortName: "DNS Helper",
+          knows: "Recently resolved addresses from many users. Its job is to find the answer on behalf of the user.",
+          question: "Do I already have this, or who should I ask first?",
+          action: "If the answer is cached here, it is returned. Otherwise, the resolver begins contacting DNS servers, starting with the root nameserver.",
+          showTldCallout: false
+        },
+        {
+          title: "Root Nameserver",
+          icon: "\uD83E\uDDED",
+          shortName: "Root",
+          knows: "Where to find servers for domain endings such as .com, .org, and .net.",
+          question: "Who handles {tld} domains?",
+          action: "Directs the resolver to the correct Top-Level Domain (TLD) nameserver for {tld}.",
+          showTldCallout: true
+        },
+        {
+          title: "Top-Level Domain (TLD) Nameserver",
+          icon: "\uD83D\uDCC1",
+          shortName: "TLD ({tld})",
+          knows: "Which authoritative nameserver manages each domain under {tld}.",
+          question: "Who manages {domain}?",
+          action: "Directs the resolver to the authoritative nameserver for {domain}.",
+          showTldCallout: false
+        },
+        {
+          title: "Authoritative Nameserver",
+          icon: "\uD83D\uDDC4\uFE0F",
+          shortName: "Authoritative",
+          knows: "The actual DNS records for {domain}, including its IP address.",
+          question: "What is the IP address for {domain}?",
+          action: "Returns the IP address to the resolver, which passes it back to the browser.",
+          showTldCallout: false
+        },
+        {
+          title: "IP Address Returned",
+          icon: "\u2705",
+          shortName: "IP Found",
+          knows: "The IP address for {domain} is now known: {ip}.",
+          question: "What can the browser do now?",
+          action: "The browser connects to the website using this IP address, and the page loads.",
+          showTldCallout: false
+        }
+      ]
+    };
+
+    // ================================================================
+    // APPLICATION STATE
+    // ================================================================
+    let currentStage = 0;
+    let currentDomain = S.domains[0];
+    let actionRevealed = false;
+
+    // ================================================================
+    // DOM REFERENCES
+    // ================================================================
+    const el = {
+      mainTitle: document.getElementById("mainTitle"),
+      subtitle: document.getElementById("subtitle"),
+      domainLabel: document.getElementById("domainLabel"),
+      domainSelect: document.getElementById("domainSelect"),
+      chainLabel: document.getElementById("chainLabel"),
+      chainList: document.getElementById("chainList"),
+      srAnnounce: document.getElementById("srAnnounce"),
+      flowMini: document.getElementById("flowMini"),
+      stageTitle: document.getElementById("stageTitle"),
+      knowsLabel: document.getElementById("knowsLabel"),
+      actionLabel: document.getElementById("actionLabel"),
+      stageKnows: document.getElementById("stageKnows"),
+      stageAction: document.getElementById("stageAction"),
+      stageQuestion: document.getElementById("stageQuestion"),
+      tldCallout: document.getElementById("tldCallout"),
+      revealZone: document.getElementById("revealZone"),
+      revealBtn: document.getElementById("revealBtn"),
+      actionBox: document.getElementById("actionBox"),
+      prevBtn: document.getElementById("prevBtn"),
+      nextBtn: document.getElementById("nextBtn"),
+      counter: document.getElementById("counter"),
+      noticeTitle: document.getElementById("noticeTitle"),
+      noticeText: document.getElementById("noticeText"),
+      beforeTitle: document.getElementById("beforeTitle"),
+      beforeIntro: document.getElementById("beforeIntro"),
+      beforeQuestion: document.getElementById("beforeQuestion"),
+      beforeText: document.getElementById("beforeText"),
+      foundLabel: document.getElementById("foundLabel"),
+      foundText: document.getElementById("foundText"),
+      notFoundLabel: document.getElementById("notFoundLabel"),
+      notFoundText: document.getElementById("notFoundText"),
+      journeyLabel: document.getElementById("journeyLabel"),
+      journeySteps: document.getElementById("journeySteps"),
+      kbdHint: document.getElementById("kbdHint")
+    };
+
+    // ================================================================
+    // HELPERS
+    // ================================================================
+    function replaceVars(text) {
+      return text
+        .replaceAll("{domain}", currentDomain.value)
+        .replaceAll("{ip}", currentDomain.ip)
+        .replaceAll("{tld}", currentDomain.tld);
+    }
+
+    function announceToScreenReader(text) {
+      el.srAnnounce.textContent = "";
+      requestAnimationFrame(() => {
+        el.srAnnounce.textContent = text;
+      });
+    }
+
+    // ================================================================
+    // CHAIN DIAGRAM
+    // ================================================================
+    function buildChain() {
+      el.chainList.innerHTML = "";
+      S.stages.forEach((stage, i) => {
+        // Node
+        const li = document.createElement("li");
+        li.className = "chain-node";
+        li.setAttribute("data-index", i);
+
+        const iconSpan = document.createElement("span");
+        iconSpan.className = "chain-node-icon";
+        iconSpan.setAttribute("aria-hidden", "true");
+        iconSpan.textContent = stage.icon;
+
+        const nameSpan = document.createElement("span");
+        nameSpan.className = "chain-node-name";
+        nameSpan.textContent = replaceVars(stage.shortName);
+
+        li.appendChild(iconSpan);
+        li.appendChild(nameSpan);
+        el.chainList.appendChild(li);
+
+        // Connector (except after last node)
+        if (i < S.stages.length - 1) {
+          const connector = document.createElement("div");
+          connector.className = "chain-connector";
+          el.chainList.appendChild(connector);
+        }
+      });
+    }
+
+    function updateChain() {
+      const nodes = el.chainList.querySelectorAll(".chain-node");
+      const connectors = el.chainList.querySelectorAll(".chain-connector");
+
+      nodes.forEach((node, i) => {
+        node.classList.remove("active", "visited");
+        if (i === currentStage) {
+          node.classList.add("active");
+        } else if (i < currentStage) {
+          node.classList.add("visited");
+        }
+        // Update shortName in case domain changed (TLD node shows {tld})
+        const nameEl = node.querySelector(".chain-node-name");
+        if (nameEl) {
+          nameEl.textContent = replaceVars(S.stages[i].shortName);
+        }
+      });
+
+      connectors.forEach((conn, i) => {
+        conn.classList.toggle("visited", i < currentStage);
+      });
+    }
+
+    // ================================================================
+    // REVEAL INTERACTION
+    // ================================================================
+    function showAction() {
+      actionRevealed = true;
+      el.actionBox.classList.remove("hidden");
+      el.actionBox.classList.add("visible");
+      el.revealZone.style.display = "none";
+      el.actionBox.focus();
+    }
+
+    // ================================================================
+    // NAVIGATION
+    // ================================================================
+    function goTo(index) {
+      if (index < 0 || index >= S.stages.length) return;
+      currentStage = index;
+      actionRevealed = false;
+      render();
+      el.stageTitle.focus();
+    }
+
+    function goNext() {
+      if (currentStage === S.stages.length - 1) {
+        goTo(0);
+      } else {
+        goTo(currentStage + 1);
+      }
+    }
+
+    function goPrev() {
+      if (currentStage > 0) goTo(currentStage - 1);
+    }
+
+    // ================================================================
+    // RENDER
+    // ================================================================
+    function render() {
+      const stage = S.stages[currentStage];
+      const total = S.stages.length;
+
+      el.beforeQuestion.textContent = replaceVars(S.beforeQuestion);
+      el.stageTitle.textContent = stage.title;
+      el.stageKnows.textContent = replaceVars(stage.knows);
+      el.stageAction.textContent = replaceVars(stage.action);
+      el.stageQuestion.textContent = replaceVars(stage.question);
+      el.counter.textContent = `${currentStage + 1} / ${total}`;
+      el.prevBtn.textContent = S.previous;
+      el.nextBtn.textContent = currentStage === total - 1 ? S.restart : S.next;
+      el.prevBtn.disabled = currentStage === 0;
+      el.flowMini.textContent = `${currentDomain.value} \u2192 ${currentStage === total - 1 ? currentDomain.ip : "?"}`;
+
+      // TLD callout — show only on root nameserver step
+      if (stage.showTldCallout) {
+        el.tldCallout.classList.add("visible");
+      } else {
+        el.tldCallout.classList.remove("visible");
+      }
+
+      // Chain diagram
+      updateChain();
+
+      // Reveal interaction
+      if (actionRevealed) {
+        el.actionBox.classList.remove("hidden");
+        el.actionBox.classList.add("visible");
+        el.revealZone.style.display = "none";
+      } else {
+        el.actionBox.classList.add("hidden");
+        el.actionBox.classList.remove("visible");
+        el.revealZone.style.display = "block";
+      }
+
+      // Screen reader announcement
+      announceToScreenReader(
+        `${S.step} ${currentStage + 1} ${S.of} ${total}: ${stage.title}. ${replaceVars(stage.question)}`
+      );
+    }
+
+    // ================================================================
+    // INITIALISE
+    // ================================================================
+    function init() {
+      // Static text
+      document.title = S.pageTitle;
+      el.mainTitle.textContent = S.pageTitle;
+      el.subtitle.textContent = S.subtitle;
+      el.domainLabel.textContent = S.domainLabel;
+      el.chainLabel.textContent = S.chainLabel;
+      el.knowsLabel.textContent = S.knowsLabel;
+      el.actionLabel.textContent = S.actionLabel;
+      el.revealBtn.textContent = S.revealBtn;
+      el.tldCallout.textContent = S.tldCallout;
+      el.noticeTitle.textContent = S.noticeTitle;
+      el.noticeText.textContent = S.noticeText;
+      el.beforeTitle.textContent = S.beforeTitle;
+      el.beforeIntro.textContent = S.beforeIntro;
+      el.beforeText.textContent = S.beforeText;
+      el.foundLabel.textContent = S.foundLabel;
+      el.foundText.textContent = S.foundText;
+      el.notFoundLabel.textContent = S.notFoundLabel;
+      el.notFoundText.textContent = S.notFoundText;
+      el.journeyLabel.textContent = S.journeyLabel;
+      el.kbdHint.textContent = S.kbdHint;
+
+      // Journey pills
+      S.journeySteps.forEach((step, index) => {
+        const pill = document.createElement("span");
+        pill.className = "journey-pill";
+        pill.textContent = step;
+        el.journeySteps.appendChild(pill);
+        if (index < S.journeySteps.length - 1) {
+          const arrow = document.createElement("span");
+          arrow.className = "journey-arrow";
+          arrow.textContent = "\u2192";
+          el.journeySteps.appendChild(arrow);
+        }
+      });
+
+      // Domain options
+      S.domains.forEach((domain, index) => {
+        const option = document.createElement("option");
+        option.value = index;
+        option.textContent = domain.label;
+        el.domainSelect.appendChild(option);
+      });
+
+      // Build chain diagram
+      buildChain();
+
+      // Event listeners
+      el.domainSelect.addEventListener("change", (e) => {
+        currentDomain = S.domains[Number(e.target.value)];
+        buildChain(); // rebuild to update {tld} in shortNames
+        goTo(0);
+      });
+
+      el.prevBtn.addEventListener("click", goPrev);
+      el.nextBtn.addEventListener("click", goNext);
+      el.revealBtn.addEventListener("click", showAction);
+
+      // Keyboard navigation
+      document.addEventListener("keydown", (e) => {
+        const tag = e.target.tagName;
+        if (tag === "SELECT" || tag === "INPUT") return;
+
+        if (e.key === "ArrowRight" || e.key === "Right") {
+          e.preventDefault();
+          goNext();
+        } else if (e.key === "ArrowLeft" || e.key === "Left") {
+          e.preventDefault();
+          if (currentStage > 0) goPrev();
+        } else if (e.key === "Enter" || e.key === " ") {
+          if (tag === "BUTTON" || tag === "SUMMARY" || tag === "A") return;
+          if (!actionRevealed) {
+            e.preventDefault();
+            showAction();
+          }
+        }
+      });
+
+      render();
+    }
+
+    init();
+  </script>
+</body>
+</html>

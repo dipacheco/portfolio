@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Explore the TCP/IP Model</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://use.typekit.net/ivt3ete.css">
+  <style>
+    :root {
+      --primary: #0074B9;
+      --primary-dark: #055586;
+      --navy: #303135;
+      --body-text: #555C68;
+      --green: #258839;
+      --green-deep: #237B36;
+      --white: #FFFFFF;
+      --bg: #F5F9FC;
+      --border: #D0DFED;
+      --danger: #F14D5C;
+      --danger-soft: #FFF1F0;
+      --code-bg: #ffeff0;
+      --shadow: 0 2px 8px rgba(0,40,80,0.07);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Roboto", helvetica, arial, sans-serif;
+      background: var(--white);
+      color: var(--body-text);
+      font-size: 15px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .heading-font,
+    h1, h2, h3, h4 {
+      font-family: "azo-sans-web", arial, helvetica, sans-serif;
+    }
+
+    .artifact {
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+
+    /* ── PROGRESS BAR ── */
+    .progress-track {
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      margin-bottom: 14px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--primary);
+      border-radius: 2px;
+      transition: width 0.4s ease;
+    }
+
+    /* ── LAYOUT ── */
+    .shell {
+      display: grid;
+      grid-template-columns: 190px minmax(0, 1fr);
+      gap: 16px;
+      align-items: start;
+    }
+
+    /* ── SIDE NAV ── */
+    .side {
+      width: 190px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      box-shadow: var(--shadow);
+      padding: 12px;
+      position: sticky;
+      top: 12px;
+    }
+
+    .side-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .side h2 {
+      margin: 0;
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--primary);
+    }
+
+    .toggle-nav {
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      background: var(--white);
+      color: var(--primary);
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 0.85rem;
+      padding: 5px 8px;
+      line-height: 1;
+      font-family: "azo-sans-web", arial, helvetica, sans-serif;
+    }
+
+    .toggle-icon {
+      display: inline-block;
+      transition: transform 0.2s ease;
+    }
+
+    .side.is-collapsed .toggle-icon {
+      transform: rotate(-90deg);
+    }
+
+    .side.is-collapsed .step-list,
+    .side.is-collapsed .keyboard-hint {
+      display: none;
+    }
+
+    .step-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .step-btn {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      background: var(--white);
+      color: var(--body-text);
+      padding: 8px 10px;
+      font-family: "Roboto", helvetica, arial, sans-serif;
+      font-size: 13px;
+      font-weight: 400;
+      text-align: left;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .step-btn .visit-mark {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 1.5px solid var(--border);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      transition: all 0.2s ease;
+    }
+
+    .step-btn.visited .visit-mark {
+      background: var(--green);
+      border-color: var(--green);
+      color: var(--white);
+    }
+
+    .step-btn[aria-current="step"] {
+      border-color: var(--primary);
+      background: var(--bg);
+      color: var(--primary-dark);
+      font-weight: 500;
+    }
+
+    .step-btn[aria-current="step"] .visit-mark {
+      border-color: var(--primary);
+      background: var(--primary);
+      color: var(--white);
+    }
+
+    .keyboard-hint {
+      margin-top: 12px;
+      color: var(--body-text);
+      font-size: 12px;
+      border-top: 1px solid var(--border);
+      padding-top: 10px;
+      line-height: 1.5;
+    }
+
+    /* ── MAIN STAGE ── */
+    .stage {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      box-shadow: var(--shadow);
+      padding: 20px;
+    }
+
+    .stage-header {
+      margin-bottom: 14px;
+    }
+
+    .eyebrow {
+      font-family: "azo-sans-web", arial, helvetica, sans-serif;
+      color: var(--green);
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin: 0 0 4px;
+    }
+
+    .stage-title {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--navy);
+      line-height: 1.2;
+    }
+
+    .intro {
+      font-size: 15px;
+      color: var(--body-text);
+      max-width: 65ch;
+      margin: 8px 0 0;
+      line-height: 1.6;
+    }
+
+    /* ── CONTENT TRANSITION ── */
+    .stage-body {
+      animation: fadeSlide 0.3s ease;
+    }
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── LAYER STACK (intro + complete) ── */
+    .layer-stack {
+      display: grid;
+      gap: 8px;
+      margin: 14px 0 4px;
+      max-width: 440px;
+    }
+
+    .layer-chip {
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--primary);
+      border-radius: 3px;
+      padding: 10px 14px;
+      background: var(--bg);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .layer-chip-name {
+      font-family: "azo-sans-web", arial, helvetica, sans-serif;
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--navy);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .layer-chip-tech {
+      color: var(--body-text);
+      font-size: 13px;
+      font-weight: 400;
+    }
+
+    /* ── INFO CARDS (layer detail) ── */
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    .info-card {
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 14px;
+      background: var(--white);
+    }
+
+    .info-card h3 {
+      margin: 0 0 6px;
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--primary);
+    }
+
+    .info-card p {
+      margin: 0;
+      color: var(--body-text);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .info-card p strong {
+      font-weight: 500;
+      color: var(--navy);
+    }
+
+    .info-card ul {
+      margin: 0;
+      padding-left: 20px;
+      color: var(--body-text);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* ── MAIN QUESTION (prominent callout per layer) ── */
+    .main-question {
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--primary);
+      border-radius: 3px;
+      padding: 10px 14px;
+      background: var(--bg);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .main-question-label {
+      font-family: "azo-sans-web", arial, helvetica, sans-serif;
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--primary);
+      flex-shrink: 0;
+    }
+
+    .main-question-text {
+      font-size: 15px;
+      font-weight: 500;
+      color: var(--navy);
+      font-style: italic;
+    }
+
+    /* ── MENTAL MODEL ── */
+    .mental-card {
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 14px;
+      background: var(--bg);
+      margin-bottom: 14px;
+    }
+
+    .mental-card h3 {
+      margin: 0 0 6px;
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--primary);
+    }
+
+    .mental-card p {
+      margin: 0;
+      color: var(--body-text);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .mental-card p strong {
+      font-weight: 500;
+      color: var(--navy);
+    }
+
+    /* ── DEVICE CALLOUT ── */
+    .device-callout {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+      padding: 4px 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      font-size: 13px;
+      color: var(--body-text);
+    }
+
+    .device-callout strong {
+      font-weight: 500;
+      color: var(--primary-dark);
+    }
+
+    /* ── CLUE BOX ── */
+    .clue {
+      margin-top: 14px;
+      border-left: 4px solid var(--green);
+      background: var(--bg);
+      padding: 12px 14px;
+      border-radius: 3px;
+    }
+
+    .clue strong {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--green-deep);
+      font-weight: 500;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-family: "azo-sans-web", arial, helvetica, sans-serif;
+    }
+
+    .clue span {
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* ── SCENARIO ── */
+    .scenario-card {
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      padding: 16px;
+      background: var(--white);
+      margin-top: 14px;
+    }
+
+    .scenario-card blockquote {
+      margin: 8px 0 14px;
+      padding: 12px 14px;
+      background: var(--bg);
+      border-left: 4px solid var(--primary);
+      border-radius: 3px;
+      color: var(--body-text);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .choices {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .choice {
+      border: 1px solid var(--border);
+      background: var(--white);
+      border-radius: 3px;
+      padding: 10px 12px;
+      cursor: pointer;
+      font-family: "Roboto", helvetica, arial, sans-serif;
+      font-size: 14px;
+      font-weight: 400;
+      text-align: left;
+      transition: border-color 0.15s ease, background 0.15s ease;
+    }
+
+    .choice:hover {
+      border-color: var(--primary);
+      background: var(--bg);
+    }
+
+    .choice.correct {
+      border-color: var(--green);
+      background: #eaf7ee;
+      font-weight: 500;
+      color: var(--green-deep);
+    }
+
+    .choice.incorrect {
+      border-color: var(--danger);
+      background: var(--danger-soft);
+    }
+
+    /* ── FEEDBACK ── */
+    .feedback {
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--body-text);
+      display: none;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .feedback.show { display: block; }
+
+    .feedback strong {
+      font-weight: 500;
+      color: var(--green-deep);
+    }
+
+    .feedback ul {
+      margin: 8px 0 0;
+      padding-left: 20px;
+    }
+
+    .feedback li {
+      margin: 6px 0;
+    }
+
+    .feedback li strong {
+      color: var(--navy);
+    }
+
+    .feedback .answer-tag {
+      display: inline-block;
+      font-family: "azo-sans-web", arial, helvetica, sans-serif;
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--primary);
+      margin-top: 8px;
+    }
+
+    /* ── CONTROLS ── */
+    .controls {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 16px;
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+    }
+
+    .control-btn {
+      display: inline-block;
+      border: 0;
+      border-radius: 3px;
+      padding: 12px 18px;
+      cursor: pointer;
+      font-family: "azo-sans-web", arial, helvetica, sans-serif;
+      font-weight: 700;
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      line-height: 1.2;
+      background: var(--primary);
+      color: var(--white);
+      transition: background 0.2s ease;
+    }
+
+    .control-btn:hover {
+      background: var(--navy);
+    }
+
+    .control-btn.secondary {
+      background: none;
+      color: var(--primary);
+      border: 2px solid var(--primary);
+    }
+
+    .control-btn.secondary:hover {
+      background: var(--bg);
+    }
+
+    .control-btn.complete {
+      background: var(--green);
+    }
+
+    .control-btn.complete:hover {
+      background: var(--navy);
+    }
+
+    /* ── FOCUS ── */
+    button:focus-visible,
+    .choice:focus-visible,
+    .toggle-nav:focus-visible,
+    .step-btn:focus-visible {
+      outline: 3px solid var(--navy);
+      outline-offset: 2px;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    /* ── STEP COUNTER ── */
+    .step-counter {
+      font-family: "Roboto", helvetica, arial, sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--body-text);
+      text-align: right;
+      margin-top: 8px;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 720px) {
+      .artifact { padding: 10px; }
+      .shell {
+        grid-template-columns: 1fr;
+      }
+      .side {
+        width: 100%;
+        position: static;
+      }
+      .step-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+      .keyboard-hint { display: none; }
+      .stage { padding: 14px; }
+      .info-grid,
+      .choices {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="artifact" id="app">
+    <div class="sr-only" aria-live="polite" aria-atomic="true" id="liveRegion"></div>
+
+    <div class="progress-track"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+
+    <div class="shell">
+      <nav class="side" id="sideNav" aria-label="TCP/IP model steps">
+        <div class="side-header">
+          <h2 data-i18n="navTitle">Explore</h2>
+          <button class="toggle-nav" id="toggleNav" type="button" aria-expanded="true" aria-controls="stepNavContent">
+            <span class="toggle-icon" aria-hidden="true">&#9662;</span>
+            <span class="sr-only" data-i18n="toggleExplore">Collapse Explore</span>
+          </button>
+        </div>
+        <div id="stepNavContent">
+          <ol class="step-list" id="stepList"></ol>
+          <p class="keyboard-hint" data-i18n="keyboardHint">Keyboard: use Left and Right arrows to move between steps.</p>
+        </div>
+      </nav>
+
+      <main class="stage" id="stage" tabindex="-1" aria-labelledby="stageTitle">
+        <div class="stage-header">
+          <p class="eyebrow" id="eyebrow"></p>
+          <h1 class="stage-title" id="stageTitle" tabindex="-1"></h1>
+          <p class="intro" id="stageIntro"></p>
+        </div>
+        <div id="stageBody" class="stage-body"></div>
+        <div class="step-counter" id="stepCounter"></div>
+        <div class="controls">
+          <button class="control-btn secondary" id="prevBtn" type="button"></button>
+          <button class="control-btn" id="nextBtn" type="button"></button>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const S = {
+      navTitle: "Explore",
+      keyboardHint: "Keyboard: use Left and Right arrows to move between steps.",
+      expandExplore: "Expand Explore",
+      collapseExplore: "Collapse Explore",
+      previous: "Previous",
+      next: "Next",
+      restart: "Restart",
+      stepLabel: "Step",
+      ofLabel: "of",
+      chooseLayer: "Choose the best TCP/IP layer to investigate first.",
+      correctLabel: "Correct.",
+      tryAgainLabel: "Try again. Look for the clue in the scenario, then choose the layer that matches that role.",
+      whyOthersTitle: "Why the other options are less likely:",
+      commonDevice: "Common device:",
+      mainQuestionLabel: "Main Question",
+
+      landingEyebrow: "TCP/IP Model",
+      landingTitle: "Explore the TCP/IP Model",
+      landingIntro: "The TCP/IP model organises networking technologies into four layers based on the role they perform during communication.",
+      landingBody: "First, explore each layer. Then practise using workplace clues to decide where a technician might begin investigating.",
+
+      navStart: "Start",
+      navApplication: "Application",
+      navTransport: "Transport",
+      navNetwork: "Network",
+      navLink: "Link",
+
+      applicationTitle: "Application Layer",
+      applicationQuestion: "What service is being used?",
+      applicationMental: "The Request",
+      applicationMentalDesc: "The user wants something from the network.",
+      applicationTech: "DNS, HTTP, HTTPS",
+      applicationClue: "DNS error, webpage error, login page not responding.",
+
+      transportTitle: "Transport Layer",
+      transportQuestion: "How is information delivered?",
+      transportMental: "The Delivery Service",
+      transportMentalDesc: "TCP helps prepare information so it can be delivered reliably between devices.",
+      transportTech: "TCP, UDP",
+      transportClue: "Page starts loading but stalls, connection times out.",
+
+      networkTitle: "Network Layer",
+      networkQuestion: "Where should information go?",
+      networkMental: "The Postal System",
+      networkMentalDesc: "IP provides the destination address. Routers help determine where information should go next between networks.",
+      networkTech: "IP",
+      networkDevice: "Router",
+      networkClue: "Wrong IP address, cannot reach another network.",
+
+      linkTitle: "Link Layer",
+      linkQuestion: "How does information move on the local network?",
+      linkMental: "The Local Roads",
+      linkMentalDesc: "Ethernet and Wi-Fi move information across the local network connection. Switches help devices communicate within the same local network.",
+      linkTech: "MAC Address, Ethernet, Wi-Fi",
+      linkDevice: "Switch",
+      linkClue: "No Wi-Fi connection, disconnected network icon, local network unavailable.",
+
+      mentalModel: "Mental Model",
+      technologies: "Technologies",
+      youMightSee: "You might see clues about",
+
+      scenarioEyebrow: "Practice",
+      scenarioIntro: "Read the workplace clue and choose the TCP/IP layer that would be the best starting point.",
+
+      scenario1Title: "Scenario 1",
+      scenario1Nav: "Scenario 1",
+      scenario1: "A user is connected to the office Wi-Fi. Messaging applications still work. However, when the user enters website names such as company.com, the browser cannot find the websites.",
+      scenario1Feedback: "The device connects to Wi-Fi and messaging works, but website names fail. That points to DNS at the Application layer.",
+      scenario1WhyApplication: "Application fits because DNS helps translate website names into IP addresses.",
+      scenario1WhyTransport: "There is no evidence that information is being lost or interrupted during delivery.",
+      scenario1WhyNetwork: "The device is already communicating with network services.",
+      scenario1WhyLink: "The user is successfully connected to the office Wi-Fi.",
+
+      scenario2Title: "Scenario 2",
+      scenario2Nav: "Scenario 2",
+      scenario2: "A user successfully reaches a website. The page begins loading, but some content never appears and the browser eventually times out.",
+      scenario2Feedback: "The page begins loading then stalls. Communication started but delivery failed, pointing to the Transport layer.",
+      scenario2WhyApplication: "The website was successfully reached.",
+      scenario2WhyTransport: "Transport fits because this layer manages delivery between devices.",
+      scenario2WhyNetwork: "Communication has already reached the destination.",
+      scenario2WhyLink: "The device is already communicating on the network.",
+
+      scenario3Title: "Scenario 3",
+      scenario3Nav: "Scenario 3",
+      scenario3: "Employees can access shared files and printers within their office. However, they cannot access resources located in a different office connected through the company network.",
+      scenario3Feedback: "Local resources work but another office's resources do not. The problem is between networks, pointing to the Network layer.",
+      scenario3WhyApplication: "The problem affects several types of resources, not a specific service such as DNS or HTTP.",
+      scenario3WhyTransport: "There is no evidence that communication starts successfully and then fails during delivery.",
+      scenario3WhyNetwork: "Network fits because IP helps information move between networks.",
+      scenario3WhyLink: "Devices can already communicate within the local office network.",
+
+      scenario4Title: "Scenario 4",
+      scenario4Nav: "Scenario 4",
+      scenario4: "A user reports that their laptop cannot access websites, shared folders, or network printers. Other nearby devices can access these resources normally.",
+      scenario4Feedback: "Other nearby devices work normally but this one cannot connect to anything. That points to this device's local network connection at the Link layer.",
+      scenario4WhyApplication: "Multiple services are affected, not a specific service such as DNS or HTTP.",
+      scenario4WhyTransport: "Communication is not progressing far enough to suggest a delivery problem.",
+      scenario4WhyNetwork: "The evidence points to a problem reaching the local network rather than another network.",
+      scenario4WhyLink: "Link fits because the evidence points to a problem with this device's connection to the local network.",
+
+      completeEyebrow: "Summary",
+      completeTitle: "Layer Review",
+      completeIntro: "You explored each layer of the TCP/IP model and practised identifying layers from workplace clues.",
+      completeBody: "In the next section, you will see how a second model, the OSI model, describes the same communication process in more detail."
+    };
+
+    const layerSteps = [
+      { key: "application", titleKey: "applicationTitle", navKey: "navApplication", questionKey: "applicationQuestion", mentalKey: "applicationMental", mentalDescKey: "applicationMentalDesc", techKey: "applicationTech", clueKey: "applicationClue" },
+      { key: "transport", titleKey: "transportTitle", navKey: "navTransport", questionKey: "transportQuestion", mentalKey: "transportMental", mentalDescKey: "transportMentalDesc", techKey: "transportTech", clueKey: "transportClue" },
+      { key: "network", titleKey: "networkTitle", navKey: "navNetwork", questionKey: "networkQuestion", mentalKey: "networkMental", mentalDescKey: "networkMentalDesc", techKey: "networkTech", deviceKey: "networkDevice", clueKey: "networkClue" },
+      { key: "link", titleKey: "linkTitle", navKey: "navLink", questionKey: "linkQuestion", mentalKey: "linkMental", mentalDescKey: "linkMentalDesc", techKey: "linkTech", deviceKey: "linkDevice", clueKey: "linkClue" }
+    ];
+
+    const scenarioData = [
+      {
+        titleKey: "scenario1Title", navKey: "scenario1Nav", textKey: "scenario1", feedbackKey: "scenario1Feedback",
+        answer: "application",
+        reasonKeys: { application: "scenario1WhyApplication", transport: "scenario1WhyTransport", network: "scenario1WhyNetwork", link: "scenario1WhyLink" }
+      },
+      {
+        titleKey: "scenario2Title", navKey: "scenario2Nav", textKey: "scenario2", feedbackKey: "scenario2Feedback",
+        answer: "transport",
+        reasonKeys: { application: "scenario2WhyApplication", transport: "scenario2WhyTransport", network: "scenario2WhyNetwork", link: "scenario2WhyLink" }
+      },
+      {
+        titleKey: "scenario3Title", navKey: "scenario3Nav", textKey: "scenario3", feedbackKey: "scenario3Feedback",
+        answer: "network",
+        reasonKeys: { application: "scenario3WhyApplication", transport: "scenario3WhyTransport", network: "scenario3WhyNetwork", link: "scenario3WhyLink" }
+      },
+      {
+        titleKey: "scenario4Title", navKey: "scenario4Nav", textKey: "scenario4", feedbackKey: "scenario4Feedback",
+        answer: "link",
+        reasonKeys: { application: "scenario4WhyApplication", transport: "scenario4WhyTransport", network: "scenario4WhyNetwork", link: "scenario4WhyLink" }
+      }
+    ];
+
+    const steps = [
+      { id: "intro", label: S.navStart, type: "intro" },
+      ...layerSteps.map(layer => ({ id: layer.key, label: S[layer.navKey], type: "layer", layer })),
+      ...scenarioData.map((sc, i) => ({ id: `scenario${i+1}`, label: S[sc.navKey], type: "scenario", scenario: sc })),
+      { id: "complete", label: S.completeEyebrow, type: "complete" }
+    ];
+
+    let current = 0;
+    const visited = new Set();
+
+    const stepList = document.getElementById("stepList");
+    const eyebrow = document.getElementById("eyebrow");
+    const stageTitle = document.getElementById("stageTitle");
+    const stageIntro = document.getElementById("stageIntro");
+    const stageBody = document.getElementById("stageBody");
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    const liveRegion = document.getElementById("liveRegion");
+    const sideNav = document.getElementById("sideNav");
+    const toggleNav = document.getElementById("toggleNav");
+    const toggleNavLabel = toggleNav.querySelector(".sr-only");
+    const progressFill = document.getElementById("progressFill");
+    const stepCounter = document.getElementById("stepCounter");
+
+    function initI18n() {
+      document.querySelectorAll("[data-i18n]").forEach(el => {
+        const key = el.getAttribute("data-i18n");
+        if (S[key]) el.textContent = S[key];
+      });
+    }
+
+    function setExploreCollapsed(isCollapsed) {
+      sideNav.classList.toggle("is-collapsed", isCollapsed);
+      toggleNav.setAttribute("aria-expanded", String(!isCollapsed));
+      toggleNavLabel.textContent = isCollapsed ? S.expandExplore : S.collapseExplore;
+      liveRegion.textContent = isCollapsed ? S.expandExplore : S.collapseExplore;
+    }
+
+    function renderNav() {
+      stepList.innerHTML = "";
+      steps.forEach((step, index) => {
+        const li = document.createElement("li");
+        const btn = document.createElement("button");
+        btn.className = "step-btn";
+        if (visited.has(index) && index !== current) btn.classList.add("visited");
+        btn.type = "button";
+
+        const mark = document.createElement("span");
+        mark.className = "visit-mark";
+        mark.setAttribute("aria-hidden", "true");
+        if (visited.has(index) && index !== current) {
+          mark.textContent = "\u2713";
+        } else if (index === current) {
+          mark.textContent = "\u25CF";
+        }
+
+        const labelSpan = document.createElement("span");
+        labelSpan.textContent = step.label;
+
+        btn.appendChild(mark);
+        btn.appendChild(labelSpan);
+        btn.setAttribute("aria-current", index === current ? "step" : "false");
+        btn.addEventListener("click", () => goTo(index));
+        li.appendChild(btn);
+        stepList.appendChild(li);
+      });
+    }
+
+    function getLayerTitle(key) {
+      const layer = layerSteps.find(l => l.key === key);
+      return layer ? S[layer.navKey] : key;
+    }
+
+    function renderIntro() {
+      eyebrow.textContent = S.landingEyebrow;
+      stageTitle.textContent = S.landingTitle;
+      stageIntro.textContent = S.landingIntro;
+      stageBody.innerHTML = `
+        <p style="margin-bottom:14px">${S.landingBody}</p>
+        <div class="layer-stack" aria-label="TCP/IP layer stack">
+          ${layerSteps.map(layer => `
+            <div class="layer-chip">
+              <span class="layer-chip-name">${S[layer.titleKey]}</span>
+              <span class="layer-chip-tech">${S[layer.techKey]}</span>
+            </div>`).join("")}
+        </div>
+      `;
+    }
+
+    function renderLayer(layer) {
+      eyebrow.textContent = S.landingEyebrow;
+      stageTitle.textContent = S[layer.titleKey];
+      stageIntro.textContent = "";
+
+      let deviceHTML = "";
+      if (layer.deviceKey) {
+        deviceHTML = `<div class="device-callout"><strong>${S.commonDevice}</strong> ${S[layer.deviceKey]}</div>`;
+      }
+
+      stageBody.innerHTML = `
+        <div class="main-question">
+          <span class="main-question-label">${S.mainQuestionLabel}</span>
+          <span class="main-question-text">${S[layer.questionKey]}</span>
+        </div>
+        <div class="info-grid">
+          <section class="mental-card" style="margin-bottom:0">
+            <h3>${S.mentalModel}</h3>
+            <p><strong>${S[layer.mentalKey]}</strong></p>
+            <p>${S[layer.mentalDescKey]}</p>
+          </section>
+          <section class="info-card">
+            <h3>${S.technologies}</h3>
+            <p>${S[layer.techKey]}</p>
+            ${deviceHTML}
+          </section>
+        </div>
+        <div class="clue">
+          <strong>${S.youMightSee}</strong>
+          <span>${S[layer.clueKey]}</span>
+        </div>
+      `;
+    }
+
+    function renderScenario(scenario) {
+      eyebrow.textContent = S.scenarioEyebrow;
+      stageTitle.textContent = S[scenario.titleKey];
+      stageIntro.textContent = S.scenarioIntro;
+      stageBody.innerHTML = `
+        <section class="scenario-card" aria-labelledby="stageTitle">
+          <blockquote>${S[scenario.textKey]}</blockquote>
+          <p style="font-weight:500;color:var(--navy);font-size:14px">${S.chooseLayer}</p>
+          <div class="choices" role="group" aria-label="${S[scenario.titleKey]}">
+            ${layerSteps.map(layer => `<button class="choice" type="button" data-choice="${layer.key}">${S[layer.navKey]}</button>`).join("")}
+          </div>
+          <div class="feedback" id="feedback" aria-live="polite"></div>
+        </section>
+      `;
+
+      document.querySelectorAll(".choice").forEach(btn => {
+        btn.addEventListener("click", event => handleChoice(event, scenario));
+      });
+    }
+
+    function buildCorrectFeedbackHTML(scenario) {
+      const reasonItems = Object.keys(scenario.reasonKeys)
+        .filter(key => key !== scenario.answer)
+        .map(key => `<li><strong>${getLayerTitle(key)}:</strong> ${S[scenario.reasonKeys[key]]}</li>`)
+        .join("");
+
+      return `
+        <strong>${S.correctLabel}</strong> ${S[scenario.feedbackKey]}
+        <div class="answer-tag">${S.whyOthersTitle}</div>
+        <ul>${reasonItems}</ul>
+      `;
+    }
+
+    function handleChoice(event, scenario) {
+      const btn = event.currentTarget;
+      const choice = btn.getAttribute("data-choice");
+      const group = document.querySelectorAll(".choice");
+      const feedback = document.getElementById("feedback");
+
+      group.forEach(item => item.classList.remove("correct", "incorrect"));
+
+      if (choice === scenario.answer) {
+        btn.classList.add("correct");
+        feedback.innerHTML = buildCorrectFeedbackHTML(scenario);
+        feedback.classList.add("show");
+        group.forEach(item => item.disabled = true);
+        liveRegion.textContent = `${S.correctLabel} ${S[scenario.feedbackKey]}`;
+      } else {
+        btn.classList.add("incorrect");
+        feedback.innerHTML = `<strong style="color:var(--danger)">${S.tryAgainLabel}</strong>`;
+        feedback.classList.add("show");
+        liveRegion.textContent = S.tryAgainLabel;
+      }
+    }
+
+    function renderComplete() {
+      eyebrow.textContent = S.completeEyebrow;
+      stageTitle.textContent = S.completeTitle;
+      stageIntro.textContent = S.completeIntro;
+      stageBody.innerHTML = `
+        <div class="layer-stack" aria-label="TCP/IP summary">
+          ${layerSteps.map(layer => `
+            <div class="layer-chip">
+              <span class="layer-chip-name">${S[layer.titleKey]}</span>
+              <span class="layer-chip-tech">${S[layer.questionKey]}</span>
+            </div>`).join("")}
+        </div>
+        <p style="margin-top:14px">${S.completeBody}</p>
+      `;
+    }
+
+    function render() {
+      visited.add(current);
+      const step = steps[current];
+
+      renderNav();
+
+      // Re-trigger animation
+      stageBody.style.animation = "none";
+      stageBody.offsetHeight;
+      stageBody.style.animation = "";
+
+      if (step.type === "intro") renderIntro();
+      if (step.type === "layer") renderLayer(step.layer);
+      if (step.type === "scenario") renderScenario(step.scenario);
+      if (step.type === "complete") renderComplete();
+
+      prevBtn.textContent = S.previous;
+      prevBtn.disabled = current === 0;
+      prevBtn.style.visibility = current === 0 ? "hidden" : "visible";
+
+      if (current === steps.length - 1) {
+        nextBtn.textContent = S.restart;
+        nextBtn.className = "control-btn complete";
+      } else {
+        nextBtn.textContent = S.next;
+        nextBtn.className = "control-btn";
+      }
+
+      // Progress
+      const pct = Math.round(((current) / (steps.length - 1)) * 100);
+      progressFill.style.width = pct + "%";
+      stepCounter.textContent = `${S.stepLabel} ${current + 1} ${S.ofLabel} ${steps.length}`;
+
+      const announcement = `${S.stepLabel} ${current + 1} ${S.ofLabel} ${steps.length}: ${stageTitle.textContent}`;
+      liveRegion.textContent = announcement;
+      stageTitle.focus();
+    }
+
+    function goTo(index) {
+      current = Math.max(0, Math.min(steps.length - 1, index));
+      render();
+    }
+
+    toggleNav.addEventListener("click", () => {
+      setExploreCollapsed(!sideNav.classList.contains("is-collapsed"));
+    });
+
+    prevBtn.addEventListener("click", () => goTo(current - 1));
+    nextBtn.addEventListener("click", () => {
+      if (current === steps.length - 1) {
+        visited.clear();
+        goTo(0);
+      } else {
+        goTo(current + 1);
+      }
+    });
+
+    document.addEventListener("keydown", event => {
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        if (current === steps.length - 1) {
+          visited.clear();
+          goTo(0);
+        } else {
+          goTo(current + 1);
+        }
+      }
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        if (current > 0) goTo(current - 1);
+      }
+    });
+
+    initI18n();
+    render();
+  </script>
+</body>
+</html>

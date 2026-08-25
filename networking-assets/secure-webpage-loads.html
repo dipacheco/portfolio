@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>How a Secure Webpage Loads</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://use.typekit.net/ivt3ete.css">
+  <style>
+    :root {
+      --primary: #0074B9;
+      --primary-dark: #055586;
+      --navy: #303135;
+      --body-text: #555C68;
+      --green: #258839;
+      --green-deep: #237B36;
+      --green-light: #eaf7ee;
+      --white: #FFFFFF;
+      --bg: #F5F9FC;
+      --border: #D0DFED;
+      --shadow: 0 2px 8px rgba(0,40,80,0.07);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Roboto", helvetica, arial, sans-serif;
+      background: var(--white);
+      color: var(--body-text);
+      font-size: 15px;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    h1, h2, h3, h4 {
+      font-family: "azo-sans-web", arial, helvetica, sans-serif;
+    }
+    .artifact { max-width: 1060px; margin: 0 auto; padding: 14px; }
+
+    /* ── HEADER ── */
+    .header {
+      background: var(--primary);
+      color: var(--white);
+      padding: 18px 20px;
+      border-radius: 3px;
+      box-shadow: var(--shadow);
+    }
+    .header h1 {
+      font-size: 22px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+    .header p {
+      font-family: "Roboto", helvetica, arial, sans-serif;
+      max-width: 740px;
+      font-size: 14px;
+      opacity: 0.95;
+      line-height: 1.6;
+    }
+    .kbd-hint {
+      margin-top: 8px;
+      font-size: 12px;
+      font-weight: 500;
+      opacity: 0.85;
+    }
+
+    /* ── LAYOUT ── */
+    .layout {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 14px;
+      margin-top: 14px;
+    }
+
+    /* ── JOURNEY NAV ── */
+    .journey-panel {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+    .journey-heading {
+      margin: 0 0 12px;
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--primary);
+    }
+    .start-pill {
+      display: flex; align-items: center; gap: 8px;
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--primary);
+      background: var(--bg);
+      color: var(--primary-dark);
+      border-radius: 3px;
+      padding: 8px 10px;
+      margin-bottom: 12px;
+      font-weight: 500;
+      font-size: 13px;
+    }
+    .start-icon {
+      min-width: 24px; height: 24px; border-radius: 50%;
+      background: var(--primary); color: var(--white);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 0.7rem;
+    }
+    .step-list { list-style: none; }
+    .step-item { position: relative; padding-bottom: 8px; }
+    .step-item:not(:last-child)::after {
+      content: "";
+      position: absolute;
+      left: 17px; top: 42px;
+      width: 2px;
+      height: calc(100% - 34px);
+      background: var(--border);
+      transition: background 0.3s;
+    }
+    .step-item.visited:not(:last-child)::after { background: var(--green); }
+    .step-btn {
+      width: 100%;
+      display: flex; align-items: center; gap: 8px;
+      border: 1px solid var(--border);
+      background: var(--white);
+      color: var(--body-text);
+      border-radius: 3px;
+      padding: 8px 10px;
+      cursor: pointer;
+      text-align: left;
+      font-family: "Roboto", helvetica, arial, sans-serif;
+      font-size: 13px;
+      font-weight: 400;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .step-btn:hover { border-color: var(--primary); background: var(--bg); }
+    .step-btn[aria-current="step"] {
+      border-color: var(--primary);
+      background: var(--bg);
+      font-weight: 500;
+      color: var(--primary-dark);
+    }
+    .step-num {
+      min-width: 24px; height: 24px; border-radius: 50%;
+      background: var(--primary); color: var(--white);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-weight: 600; font-size: 11px;
+      flex-shrink: 0; z-index: 1;
+      transition: background 0.3s;
+    }
+    .step-num.done { background: var(--green); }
+
+    /* ── DETAIL PANEL ── */
+    .detail-panel {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      box-shadow: var(--shadow);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Mini journey */
+    .mini-journey {
+      display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+      padding: 8px 10px;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      background: var(--white);
+      margin-bottom: 14px;
+    }
+    .mini-node {
+      border: 1px solid var(--border);
+      border-radius: 1em;
+      padding: 3px 9px;
+      font-size: 12px; font-weight: 500;
+      color: var(--body-text); background: var(--white);
+      transition: all 0.3s;
+    }
+    .mini-node.active { background: var(--primary); color: var(--white); border-color: var(--primary); }
+    .mini-node.visited { background: var(--green-light); color: var(--green-deep); border-color: var(--green); }
+    .mini-arrow { color: var(--border); font-size: 11px; transition: color 0.3s; }
+    .mini-arrow.passed { color: var(--green); }
+
+    /* Progress bar */
+    .progress-row {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 12px;
+      font-size: 12px; color: var(--body-text); font-weight: 500;
+    }
+    .progress-track { flex: 1; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+    .progress-fill { height: 100%; background: var(--primary); border-radius: 2px; transition: width 0.4s ease; }
+
+    /* Step content area */
+    .detail-title {
+      font-size: 22px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--navy);
+      margin: 0 0 14px;
+    }
+
+    .detail-block {
+      border-left: 4px solid var(--primary);
+      background: var(--bg);
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      border-radius: 0 3px 3px 0;
+      animation: fadeSlideIn 0.3s ease;
+    }
+    .detail-block.why-block { border-left-color: var(--green); }
+    .detail-block h3 {
+      margin: 0 0 5px;
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--primary);
+    }
+    .detail-block.why-block h3 { color: var(--green-deep); }
+    .detail-block p { margin: 0; font-size: 14px; line-height: 1.6; }
+
+    @keyframes fadeSlideIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Visual flow */
+    .visual-line {
+      margin: 0 0 12px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 3px;
+      background: var(--white);
+      display: flex; align-items: center; justify-content: center;
+      gap: 0; flex-wrap: wrap;
+    }
+    .vis-node {
+      padding: 5px 12px;
+      border-radius: 1em;
+      font-size: 13px; font-weight: 500;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      color: var(--primary-dark);
+      transition: all 0.3s;
+    }
+    .vis-node.highlight {
+      background: var(--primary);
+      color: var(--white);
+      border-color: var(--primary);
+    }
+    .vis-arrow {
+      display: inline-flex; align-items: center;
+      padding: 0 4px;
+      color: var(--primary);
+    }
+    .vis-arrow svg { width: 22px; height: 14px; }
+    .vis-arrow.animated svg path { animation: arrowPulse 1.2s ease-in-out infinite; }
+    @keyframes arrowPulse {
+      0%, 100% { opacity: 0.5; }
+      50%      { opacity: 1; }
+    }
+
+    /* Controls */
+    .controls {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 10px; margin-top: auto; padding-top: 14px;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+    }
+    .ctrl-btn {
+      display: inline-block;
+      border: none; border-radius: 3px;
+      padding: 12px 18px;
+      font-family: "azo-sans-web", arial, helvetica, sans-serif;
+      font-weight: 700; cursor: pointer;
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      line-height: 1.2;
+      transition: background 0.2s ease;
+    }
+    .ctrl-btn:active { transform: scale(0.97); }
+    .ctrl-btn.primary { background: var(--primary); color: var(--white); }
+    .ctrl-btn.primary:hover { background: var(--navy); }
+    .ctrl-btn.secondary {
+      background: none; color: var(--primary);
+      border: 2px solid var(--primary);
+    }
+    .ctrl-btn.secondary:hover { background: var(--bg); }
+    .ctrl-btn.success { background: var(--green); color: var(--white); }
+    .ctrl-btn.success:hover { background: var(--navy); }
+    .ctrl-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+    button:focus-visible, [tabindex]:focus-visible {
+      outline: 3px solid var(--navy);
+      outline-offset: 2px;
+    }
+
+    .sr-only {
+      position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+      overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+    }
+
+    @media (max-width: 860px) {
+      .kbd-hint { display: none; }
+      .layout { grid-template-columns: 1fr; }
+      .journey-panel { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; padding: 10px; }
+      .journey-heading { margin: 0; font-size: 12px; width: 100%; }
+      .start-pill { display: none; }
+      .step-list { display: flex; gap: 6px; flex-wrap: wrap; }
+      .step-item { padding-bottom: 0; }
+      .step-item::after { display: none !important; }
+      .step-btn { padding: 6px 10px; font-size: 12px; }
+      .step-num { min-width: 22px; height: 22px; font-size: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="artifact">
+    <header class="header" aria-labelledby="page-title">
+      <h1 id="page-title"></h1>
+      <p id="page-intro"></p>
+      <p class="kbd-hint" id="kbd-hint"></p>
+    </header>
+
+    <section class="layout" aria-label="Interactive journey">
+      <nav class="journey-panel" aria-label="Journey steps">
+        <h2 class="journey-heading" id="journey-heading"></h2>
+        <div class="start-pill" aria-label="Starting point">
+          <span class="start-icon" aria-hidden="true">&#9654;</span>
+          <span id="start-label"></span>
+        </div>
+        <ol class="step-list" id="step-list"></ol>
+      </nav>
+
+      <section class="detail-panel" aria-labelledby="detail-title">
+        <div class="mini-journey" id="mini-journey" aria-label="Journey overview"></div>
+
+        <div class="progress-row">
+          <span id="progress-text"></span>
+          <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+        </div>
+
+        <h2 class="detail-title" id="detail-title" tabindex="-1"></h2>
+
+        <div id="step-content">
+          <div class="detail-block" id="what-block">
+            <h3 id="heading-what"></h3>
+            <p id="detail-what"></p>
+          </div>
+
+          <div class="visual-line" id="visual-line" aria-hidden="true"></div>
+
+          <div class="detail-block why-block" id="why-block">
+            <h3 id="heading-why"></h3>
+            <p id="detail-why"></p>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button class="ctrl-btn secondary" id="prev-btn" type="button"></button>
+          <button class="ctrl-btn primary" id="next-btn" type="button"></button>
+        </div>
+
+        <div class="sr-only" id="sr-announce" aria-live="polite"></div>
+      </section>
+    </section>
+  </main>
+
+  <script>
+    /*
+      TRANSLATION INSTRUCTIONS
+      ────────────────────────
+      Translate ONLY the string values inside the S object below.
+      Do not change keys, brackets, commas, or any code structure.
+      Do not place HTML tags inside string values.
+      Technical terms (HTTPS, TLS, TCP, HTML, IP) stay in English.
+    */
+
+    const S = {
+      /* PAGE HEADER */
+      pageTitle: "How a Secure Webpage Loads",
+      intro: "What happens between clicking a link and seeing a webpage? Explore how HTTPS, TLS, TCP, and HTML work together.",
+      kbdHint: "Keyboard tip: use the Left and Right arrow keys to move through the journey.",
+
+      /* JOURNEY NAV */
+      journeyHeading: "Select a step to explore",
+      startLabel: "Browser starts the journey",
+      stepLabel: "Step",
+      of: "of",
+
+      /* DETAIL LABELS */
+      headingWhat: "What is happening?",
+      headingWhy: "Why does it matter?",
+
+      /* NAVIGATION */
+      btnPrevious: "Previous",
+      btnNext: "Next",
+      btnRestart: "Restart",
+
+      /* MINI JOURNEY PILLS */
+      mini_0: "Browser",
+      mini_1: "Request",
+      mini_2: "Protected",
+      mini_3: "Delivered",
+      mini_4: "Response",
+      mini_5: "Displayed",
+
+      /* STAGE 1: HTTPS Request */
+      stage0_label: "HTTPS Request",
+      stage0_what: "The browser sends a request to the web server using HTTPS.",
+      stage0_why: "HTTPS combines two things: HTTP, which structures the request and response, and TLS, which adds a layer of protection. The next steps show how each part works.",
+      stage0_vis_0: "Browser",
+      stage0_vis_1: "HTTPS Request",
+      stage0_vis_2: "Server",
+
+      /* STAGE 2: TLS Protection */
+      stage1_label: "TLS Protection",
+      stage1_what: "Before data leaves the browser, TLS encrypts it so it cannot be read during transit.",
+      stage1_why: "Think of TLS as a sealed envelope around each message. Without it, anyone along the network path could read passwords, payment details, or personal data as it passes by.",
+      stage1_vis_0: "HTTPS Request",
+      stage1_vis_1: "TLS Protection",
+
+      /* STAGE 3: TCP Delivery */
+      stage2_label: "TCP Delivery",
+      stage2_what: "TCP takes the protected data and transports it from one end to the other.",
+      stage2_why: "TCP makes sure every piece of data arrives, and arrives in the right order. Without it, half a webpage could load while the rest goes missing.",
+      stage2_vis_0: "TLS-Protected Data",
+      stage2_vis_1: "TCP Delivery",
+      stage2_vis_2: "Server",
+
+      /* STAGE 4: HTML Response */
+      stage3_label: "HTML Response",
+      stage3_what: "The server processes the request and sends back HTML as part of its response.",
+      stage3_why: "HTML is the code that describes a webpage's content: text, headings, images, buttons, and links. The browser reads this code and builds the visible page from it.",
+      stage3_vis_0: "Server",
+      stage3_vis_1: "HTML Response",
+      stage3_vis_2: "Browser",
+
+      /* STAGE 5: Webpage Displayed */
+      stage4_label: "Webpage Displayed",
+      stage4_what: "The browser reads the HTML, applies styles, and displays the finished page on screen.",
+      stage4_why: "This is what the user actually sees. Every previous layer worked behind the scenes to make this moment possible.",
+      stage4_vis_0: "Browser",
+      stage4_vis_1: "Webpage Displayed"
+    };
+
+    /* ── STATE ── */
+    const TOTAL = 5;
+    const visited = new Set();
+    let cur = 0;
+
+    /* ── DOM ── */
+    const $ = id => document.getElementById(id);
+
+    /* ── ARROW SVG ── */
+    const ARROW_SVG = '<svg viewBox="0 0 24 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7h18m0 0l-5-5m5 5l-5 5"/></svg>';
+
+    /* ── HELPERS ── */
+    function visPills(i) {
+      const out = [];
+      let n = 0;
+      while (S[`stage${i}_vis_${n}`] !== undefined) { out.push(S[`stage${i}_vis_${n}`]); n++; }
+      return out;
+    }
+
+    function announce(msg) {
+      const el = $("sr-announce");
+      el.textContent = "";
+      requestAnimationFrame(() => { el.textContent = msg; });
+    }
+
+    /* ── BUILD ── */
+    function init() {
+      document.title = S.pageTitle;
+      $("page-title").textContent = S.pageTitle;
+      $("page-intro").textContent = S.intro;
+      $("kbd-hint").textContent = S.kbdHint;
+      $("journey-heading").textContent = S.journeyHeading;
+      $("start-label").textContent = S.startLabel;
+      $("heading-what").textContent = S.headingWhat;
+      $("heading-why").textContent = S.headingWhy;
+      $("prev-btn").textContent = S.btnPrevious;
+
+      buildNav();
+      buildMini();
+      update(false);
+    }
+
+    function buildNav() {
+      const ol = $("step-list");
+      ol.innerHTML = "";
+      for (let i = 0; i < TOTAL; i++) {
+        const li = document.createElement("li");
+        li.className = "step-item";
+        li.id = "step-item-" + i;
+        const btn = document.createElement("button");
+        btn.className = "step-btn";
+        btn.type = "button";
+        btn.setAttribute("aria-label", `${S.stepLabel} ${i+1}: ${S["stage"+i+"_label"]}`);
+        const num = document.createElement("span");
+        num.className = "step-num";
+        num.id = "step-num-" + i;
+        num.textContent = i + 1;
+        const lbl = document.createElement("span");
+        lbl.textContent = S["stage"+i+"_label"];
+        btn.appendChild(num);
+        btn.appendChild(lbl);
+        btn.addEventListener("click", () => { cur = i; update(true); });
+        li.appendChild(btn);
+        ol.appendChild(li);
+      }
+    }
+
+    function buildMini() {
+      const el = $("mini-journey");
+      el.innerHTML = "";
+      for (let i = 0; i < 6; i++) {
+        const node = document.createElement("span");
+        node.className = "mini-node";
+        node.textContent = S["mini_"+i];
+        node.setAttribute("data-mi", i);
+        el.appendChild(node);
+        if (i < 5) {
+          const arr = document.createElement("span");
+          arr.className = "mini-arrow";
+          arr.setAttribute("data-ai", i);
+          arr.textContent = "\u2192";
+          el.appendChild(arr);
+        }
+      }
+    }
+
+    /* ── UPDATE ── */
+    function update(focus) {
+      visited.add(cur);
+
+      // Nav buttons
+      const btns = document.querySelectorAll(".step-btn");
+      btns.forEach((b, i) => {
+        if (i === cur) b.setAttribute("aria-current", "step");
+        else b.removeAttribute("aria-current");
+      });
+
+      // Step numbers: visited = check, current = number
+      for (let i = 0; i < TOTAL; i++) {
+        const num = $("step-num-" + i);
+        const item = $("step-item-" + i);
+        if (visited.has(i) && i !== cur) {
+          num.classList.add("done");
+          num.textContent = "\u2713";
+          item.classList.add("visited");
+        } else {
+          num.classList.remove("done");
+          num.textContent = i + 1;
+          if (i !== cur) item.classList.remove("visited");
+          else item.classList.add("visited");
+        }
+      }
+
+      // Mini journey
+      document.querySelectorAll(".mini-node").forEach((n, i) => {
+        n.classList.remove("active", "visited");
+        if (i === cur + 1) n.classList.add("active");
+        else if (i > 0 && i <= cur) n.classList.add("visited");
+        else if (i === 0 && cur >= 0) n.classList.add("visited");
+      });
+      document.querySelectorAll(".mini-arrow").forEach((a, i) => {
+        a.classList.toggle("passed", i < cur + 1);
+      });
+
+      // Progress
+      const pct = Math.round(((cur + 1) / TOTAL) * 100);
+      $("progress-text").textContent = `${S.stepLabel} ${cur+1} ${S.of} ${TOTAL}`;
+      $("progress-fill").style.width = pct + "%";
+
+      // Detail content
+      $("detail-title").textContent = S["stage"+cur+"_label"];
+      $("detail-what").textContent = S["stage"+cur+"_what"];
+      $("detail-why").textContent = S["stage"+cur+"_why"];
+
+      // Re-trigger animation
+      const wb = $("what-block");
+      const yb = $("why-block");
+      wb.style.animation = "none"; yb.style.animation = "none";
+      wb.offsetHeight; // force reflow
+      wb.style.animation = ""; yb.style.animation = "";
+
+      // Visual flow
+      const vl = $("visual-line");
+      vl.innerHTML = "";
+      const pills = visPills(cur);
+      pills.forEach((text, i) => {
+        const node = document.createElement("span");
+        node.className = "vis-node";
+        // Highlight the middle concept (the active layer)
+        if (pills.length === 3 && i === 1) node.classList.add("highlight");
+        if (pills.length === 2 && i === 1) node.classList.add("highlight");
+        node.textContent = text;
+        vl.appendChild(node);
+        if (i < pills.length - 1) {
+          const arr = document.createElement("span");
+          arr.className = "vis-arrow animated";
+          arr.innerHTML = ARROW_SVG;
+          vl.appendChild(arr);
+        }
+      });
+
+      // Controls
+      $("prev-btn").disabled = cur === 0;
+      const last = cur === TOTAL - 1;
+      const nb = $("next-btn");
+      nb.textContent = last ? S.btnRestart : S.btnNext;
+      nb.className = last ? "ctrl-btn success" : "ctrl-btn primary";
+
+      announce(S["stage"+cur+"_label"]);
+      if (focus) $("detail-title").focus();
+    }
+
+    /* ── EVENTS ── */
+    $("prev-btn").addEventListener("click", () => {
+      if (cur > 0) { cur--; update(true); }
+    });
+
+    $("next-btn").addEventListener("click", () => {
+      if (cur < TOTAL - 1) { cur++; update(true); }
+      else { cur = 0; visited.clear(); update(true); }
+    });
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "ArrowLeft" && cur > 0) { cur--; update(true); }
+      if (e.key === "ArrowRight" && cur < TOTAL - 1) { cur++; update(true); }
+    });
+
+    /* ── GO ── */
+    init();
+  </script>
+</body>
+</html>
